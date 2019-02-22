@@ -1,116 +1,15 @@
-local inpsect = require('inspect')
+local inspect = require('inspect')
+require('PhysicsDebugDraw')
 
-function colorFixture()
-    return 0.6,1.0,0.6,0.125
-end
 
-function colorContactFixture()
-    return 0.2,0.2,1.0,0.25
-end
+function string_to_function(text)
+    local func = assert(loadstring(text))
+    if (func) then return func end
 
-function colorContactPoint()
-    return 1.0,0.6,0.5,0.7
-end
-
-function colorJoint()
-    return 1.0,0.2,0.4,0.7
-end
-
-function drawPhysicsShape(mode,body,shape,r,g,b,a)
-    local shapeType = shape:getType()
-    love.graphics.setColor(r or 1,g or 1,b or 1,a or 1)
-
-    if (shapeType == "circle") then
-        local cx,cy = body:getWorldPoints(shape:getPoint())
-        local crad = shape:getRadius()
-        love.graphics.circle(mode,cx,cy,crad)
-    elseif (shapeType == 'polygon') then
-        love.graphics.polygon(mode,body:getWorldPoints(shape:getPoints()))
-    else
-        love.graphics.line(body:getWorldPoints(shape:getPoints()))
-    end
-
-    love.graphics.setColor(1,1,1,1)
-end
-
-function drawPhysicsBodies(world)
-    local bodies = world:getBodies()
-    for _, body in pairs(bodies) do
-        local fixtures = body:getFixtures()
-        for _, fixture in pairs(fixtures) do
-            local shape = fixture:getShape()
-            drawPhysicsShape('fill',body,shape,colorFixture())
-        end
-    end
-end
-
-function drawPhysicsContacts(world)
-    local contacts = world:getContacts()
-    local text = ""
-    for i,contact in ipairs(contacts) do
-        local fixtures = {contact:getFixtures()}
-        for _, fixture in pairs(fixtures) do
-            local fd = fixture:getUserData()
-            if (fd == nil) then fd = "NIL" end
-            text = text .. ' ' .. fd .. '\n'
-            local body = fixture:getBody()
-            local shape = fixture:getShape()
-            drawPhysicsShape('fill',body,shape,colorContactFixture())
-        end
-
-        love.graphics.setColor(colorContactPoint())
-        local points = {contact:getPositions()}
-        for i=1,#points,2 do
-            local px = points[i]
-            local py = points[i+1]
-            love.graphics.circle('fill',px,py,4)
-        end
-        love.graphics.setColor(1,1,1,1)
-    end
-end
-
-function drawPhysicsJoints(world)
-    love.graphics.setColor(colorJoint())
-    local joints = world:getJoints()
-    for _,joint in pairs(joints) do
-        local jointType = joint:getType()
-        local ax,ay,bx,by = joint:getAnchors()
-        -- if (jointType == "distance") then
-        --     love.graphics.line(ax,ay,bx,by)
-        -- elseif (jointType == "friction") then
-
-        -- elseif (jointType == "gear") then
-
-        -- elseif (jointType == "mouse") then
-
-        -- elseif (jointType == "prismatic") then
-
-        -- elseif (jointType == "pulley") then
-
-        -- elseif (jointType == "revolute") then
-
-        -- elseif (jointType == "rope") then
-
-        -- else -- if jointType == "weld" then
-
-        -- end
-        love.graphics.line(ax,ay,bx,by)
-        love.graphics.circle('fill',ax,ay,3)
-        love.graphics.circle('fill',bx,by,3)
-    end
-    love.graphics.setColor(1,1,1,1)
-end
-
-function drawPhysicsWorld(world)
-    drawPhysicsBodies(world)
-    drawPhysicsContacts(world)
-    drawPhysicsJoints(world)
+    return nil
 end
 
 function beginContact(a,b,col)
-    --local ax,ay = col:getPositions()
-    --local nx,ny = col:getNormal()
-
     local ad = a:getUserData()
     local bd = b:getUserData()
     if (ad == nil) then ad = "NIL" end
@@ -120,7 +19,7 @@ function beginContact(a,b,col)
         if (a:isSensor()) then print(ad .. " is a sensor") end
         if (b:isSensor()) then print(bd .. " is a sensor") end
     else
-        print(inpsect({"Positions", {col:getPositions()},"Normal",col:getNormal()}))
+        print(inspect({"Positions", {col:getPositions()},"Normal",col:getNormal()}))
     end
 end
 
@@ -134,8 +33,10 @@ end
 function postSolve(a,b,col,normalImpulse,tangentImpulse)
 end
 
-
 function love.load()
+    local func = string_to_function('local a,b,col = ... print(a:getUserData() .. " BOOBIES with " .. b:getUserData())')
+    if (func) then beginContact = func end
+
     local pixelMeterScale = 32
     world = love.physics.newWorld(0,9.81 * pixelMeterScale,true)
     world:setCallbacks(beginContact,endContact,preSolve,postSolve)
@@ -180,5 +81,6 @@ function love.update(dt)
 end
 
 function love.draw()
-    drawPhysicsWorld(world)
+    --drawPhysicsWorld(world)
+    love.physics.drawWorld(world)
 end
