@@ -1,86 +1,87 @@
-local inspect = require('inspect')
-require('PhysicsDebugDraw')
+local nuklear = require("nuklear")
 
+local ui
 
-function string_to_function(text)
-    local func = assert(loadstring(text))
-    if (func) then return func end
+function UIMenuBar()
+    local width = {
+        file = 30,
+        help = 60,
+        menuItems = 128
+    }
 
-    return nil
-end
+    ui:menubarBegin()
 
-function beginContact(a,b,col)
-    local ad = a:getUserData()
-    local bd = b:getUserData()
-    if (ad == nil) then ad = "NIL" end
-    if (bd == nil) then bd = "NIL" end
-    print(ad .. " collides with " .. bd)
-    if (col:getPositions() == nil and col:isEnabled()) then
-        if (a:isSensor()) then print(ad .. " is a sensor") end
-        if (b:isSensor()) then print(bd .. " is a sensor") end
-    else
-        print(inspect({"Positions", {col:getPositions()},"Normal",col:getNormal()}))
+    ui:layoutRowBegin("static",30,5)
+    ui:layoutRowPush(width.file)
+        
+    if (ui:menuBegin("File",nil,width.menuItems,30)) then
+        
+        ui:layoutRow("dynamic",30,1)
+        if (ui:menuItem("Exit")) then
+            love.event.quit()
+        end
+
+        ui:menuEnd()
     end
-end
 
-function endContact(a,b,col)
-    print(a:getUserData() .. " ends collision with " .. b:getUserData())
-end
+    ui:layoutRowPush(width.help)
+    if (ui:menuBegin("Help",nil,width.menuItems,30)) then
+        
+        ui:layoutRow("dynamic",30,1)
+        if (ui:menuItem("About")) then
+            print("Love2D Physics Editor v0.0.0")
+        end
 
-function preSolve(a,b,col)
-end
+        ui:menuEnd()
+    end
 
-function postSolve(a,b,col,normalImpulse,tangentImpulse)
+    ui:menubarEnd()
 end
 
 function love.load()
-    local func = string_to_function('local a,b,col = ... print(a:getUserData() .. " BOOBIES with " .. b:getUserData())')
-    if (func) then beginContact = func end
-
-    local pixelMeterScale = 32
-    world = love.physics.newWorld(0,9.81 * pixelMeterScale,true)
-    world:setCallbacks(beginContact,endContact,preSolve,postSolve)
-
-    local w,h = love.graphics.getDimensions()
-
-    objects = {}
-
-    objects.boundary = {}
-    objects.boundary.body = love.physics.newBody(world,0,0)
-
-    objects.boundary.shape = {}
-    objects.boundary.shape[1] = love.physics.newEdgeShape(0,0,w,0)
-    objects.boundary.shape[2] = love.physics.newEdgeShape(0,h,w,h)
-    objects.boundary.shape[3] = love.physics.newEdgeShape(0,0,0,h)
-    objects.boundary.shape[4] = love.physics.newEdgeShape(w,0,w,h)
-
-    objects.boundary.fixture = {}
-    for i=1,#objects.boundary.shape do
-        objects.boundary.fixture[i] = love.physics.newFixture(objects.boundary.body,objects.boundary.shape[i])
-        objects.boundary.fixture[i]:setUserData("Boundary Edge " .. i)
-    end
-
-    objects.ball = {}
-    objects.ball.body = love.physics.newBody(world,w/2,0, "dynamic")
-    objects.ball.shape = love.physics.newCircleShape(15)
-    objects.ball.fixture = love.physics.newFixture(objects.ball.body,objects.ball.shape,5)
-    objects.ball.fixture:setUserData("Ball")
-
-    objects.sensorPad = {}
-    objects.sensorPad.body = love.physics.newBody(world,w/2,h/2 + h/2/2)
-    objects.sensorPad.shape = love.physics.newRectangleShape(w,h*0.45)
-    objects.sensorPad.fixture = love.physics.newFixture(objects.sensorPad.body, objects.sensorPad.shape)
-    objects.sensorPad.fixture:setUserData("High Friction Pad")
-    objects.sensorPad.fixture:setSensor(true)
-
+	ui = nuklear.newUI()
 end
 
 function love.update(dt)
-    local timescale = 1
-    world:update(dt * timescale)
+	ui:frameBegin()
+    
+    local w,h = love.graphics.getDimensions()
+    if (ui:windowBegin("MenuBar",0,0,w,h,"background")) then 
+        UIMenuBar()
+    end
+    ui:windowEnd()
+
+	ui:frameEnd()
 end
 
 function love.draw()
-    --drawPhysicsWorld(world)
-    love.physics.drawWorld(world)
+	ui:draw()
+end
+
+function love.keypressed(key, scancode, isrepeat)
+	ui:keypressed(key, scancode, isrepeat)
+end
+
+function love.keyreleased(key, scancode)
+	ui:keyreleased(key, scancode)
+end
+
+function love.mousepressed(x, y, button, istouch, presses)
+	ui:mousepressed(x, y, button, istouch, presses)
+end
+
+function love.mousereleased(x, y, button, istouch, presses)
+	ui:mousereleased(x, y, button, istouch, presses)
+end
+
+function love.mousemoved(x, y, dx, dy, istouch)
+	ui:mousemoved(x, y, dx, dy, istouch)
+end
+
+function love.textinput(text)
+	ui:textinput(text)
+end
+
+function love.wheelmoved(x, y)
+	ui:wheelmoved(x, y)
 end
